@@ -1,0 +1,88 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy over SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          PORT="${VPS_PORT:-22}"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh-keyscan -p "$PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+          ssh -p "$PORT" -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" 'bash -s' <<'EOF'
+          set -euo pipefail
+
+          APP_DIR="/home/nukie88deploy/apps/bonbonk"
+          REPO_URL="https://github.com/ngBulgaria/bonbonk.git"
+          BRANCH="main"
+
+          echo "Starting BonBonK deployment..."
+
+          if ! command -v git >/dev/null 2>&1; then
+            echo "ERROR: git is not installed on VPS"
+            exit 1
+          fi
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "ERROR: docker is not installed on VPS"
+            exit 1
+          fi
+
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "ERROR: docker compose v2 is not available on VPS"
+            exit 1
+          fi
+
+          mkdir -p "$(dirname "$APP_DIR")"
+
+          if [ ! -d "$APP_DIR/.git" ]; then
+            echo "Cloning repository..."
+            git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+          fi
+
+          cd "$APP_DIR"
+
+          echo "Pulling latest code from main..."
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+          if [ ! -f compose.yaml ] && [ ! -f docker-compose.yml ]; then
+            echo "ERROR: No compose.yaml or docker-compose.yml found."
+            echo "Repository was pulled successfully, but Docker deployment cannot run yet."
+            exit 1
+          fi
+
+          echo "Building and starting containers..."
+          docker compose up -d --build --remove-orphans
+
+          echo "Cleaning unused Docker images..."
+          docker image prune -f
+
+          echo "BonBonK deployment finished successfully."
+          EOF

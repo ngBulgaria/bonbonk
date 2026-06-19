@@ -7,6 +7,7 @@ COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensio
 RUN install-php-extensions \
     intl \
     mbstring \
+    mongodb \
     opcache \
     pdo_mysql \
     redis \

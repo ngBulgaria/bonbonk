@@ -16,6 +16,30 @@ services:
     container_name: bonbonk-php
     restart: unless-stopped
     working_dir: /var/www/html
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:${MONGO_VERSION:-8.2}
+    container_name: bonbonk-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-bonbonk}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   node:
     image: ${IMAGE_REPOSITORY}-node:${IMAGE_TAG}
@@ -24,3 +48,6 @@ services:
     profiles:
       - tools
     command: ["npm", "--version"]
+
+volumes:
+  mongo-data:

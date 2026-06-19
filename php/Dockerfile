@@ -1,25 +1,20 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
+
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
+
+RUN set -eux; \
+    apk add --no-cache \
+        bash \
+        curl \
+        git \
+        unzip \
+        zip; \
+    install-php-extensions \
+        intl \
+        mbstring \
+        opcache \
+        pdo_mysql \
+        zip \
+        redis
 
 WORKDIR /var/www/html
-
-RUN apk add --no-cache \
-    bash \
-    curl \
-    git \
-    icu-dev \
-    libzip-dev \
-    oniguruma-dev \
-    unzip \
-    zip \
-    $PHPIZE_DEPS \
-  && docker-php-ext-install \
-    intl \
-    mbstring \
-    opcache \
-    pdo \
-    pdo_mysql \
-    zip \
-  && pecl install redis \
-  && docker-php-ext-enable redis
-
-COPY php/php.ini /usr/local/etc/php/conf.d/bonbonk.ini

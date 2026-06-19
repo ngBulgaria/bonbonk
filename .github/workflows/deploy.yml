@@ -58,6 +58,7 @@ jobs:
           MARIADB_PASSWORD=ci_password \
           REDIS_VERSION="${REDIS_VERSION}" \
           REDIS_PASSWORD=ci_password \
+          KAFKA_VERSION="${KAFKA_VERSION}" \
           docker compose config --quiet
 
       - name: Set up Docker Buildx
@@ -221,6 +222,8 @@ jobs:
 
           REDIS_VERSION=${REDIS_VERSION}
           REDIS_PASSWORD=${REDIS_PASSWORD}
+
+          KAFKA_VERSION=${KAFKA_VERSION}
           ENVFILE
 
           echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin

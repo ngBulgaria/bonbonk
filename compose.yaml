@@ -23,8 +23,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
 
   mongo:
     image: mongo:${MONGO_VERSION:-8.2}
@@ -99,17 +97,18 @@ services:
   kafka:
     image: apache/kafka:${KAFKA_VERSION:-4.3.0}
     container_name: bonbonk-kafka
+    hostname: kafka
     restart: unless-stopped
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
 
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -119,11 +118,10 @@ services:
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_LOG_RETENTION_HOURS: 168
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-
-      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: "-Xms128m -Xmx384m"
     volumes:
-      - kafka-data:/tmp/kraft-combined-logs
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
       test:
         [
@@ -133,7 +131,7 @@ services:
       interval: 15s
       timeout: 10s
       retries: 20
-      start_period: 90s
+      start_period: 120s
 
   node:
     image: ${IMAGE_REPOSITORY}-node:${IMAGE_TAG}

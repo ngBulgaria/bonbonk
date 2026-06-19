@@ -19,6 +19,8 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      mariadb:
+        condition: service_healthy
 
   mongo:
     image: mongo:${MONGO_VERSION:-8.2}
@@ -41,6 +43,28 @@ services:
       retries: 5
       start_period: 30s
 
+  mariadb:
+    image: mariadb:${MARIADB_VERSION:-11.8}
+    container_name: bonbonk-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mariadb-admin ping -h 127.0.0.1 -u root -p\"$${MARIADB_ROOT_PASSWORD}\" --silent"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   node:
     image: ${IMAGE_REPOSITORY}-node:${IMAGE_TAG}
     container_name: bonbonk-node
@@ -51,3 +75,4 @@ services:
 
 volumes:
   mongo-data:
+  mariadb-data:

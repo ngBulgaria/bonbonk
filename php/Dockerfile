@@ -1,9 +1,10 @@
-FROM php:8.4-fpm-alpine
+FROM php:8.4-fpm
 
 COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN set -eux; \
-    apk add --no-cache \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
         bash \
         curl \
         git \
@@ -15,6 +16,8 @@ RUN set -eux; \
         opcache \
         pdo_mysql \
         zip \
-        redis
+        redis; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html

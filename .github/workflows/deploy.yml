@@ -19,6 +19,7 @@ env:
   REGISTRY: ghcr.io
   MONGO_VERSION: "8.2"
   MONGO_INITDB_DATABASE: bonbonk
+  MARIADB_VERSION: "11.8"
 
 jobs:
   build:
@@ -48,6 +49,11 @@ jobs:
           MONGO_INITDB_DATABASE="${MONGO_INITDB_DATABASE}" \
           MONGO_INITDB_ROOT_USERNAME=ci_user \
           MONGO_INITDB_ROOT_PASSWORD=ci_password \
+          MARIADB_VERSION="${MARIADB_VERSION}" \
+          MARIADB_DATABASE=ci_database \
+          MARIADB_USER=ci_user \
+          MARIADB_ROOT_PASSWORD=ci_root_password \
+          MARIADB_PASSWORD=ci_password \
           docker compose config --quiet
 
       - name: Set up Docker Buildx
@@ -120,11 +126,22 @@ jobs:
           MONGO_INITDB_DATABASE: ${{ env.MONGO_INITDB_DATABASE }}
           MONGO_INITDB_ROOT_USERNAME: ${{ secrets.MONGO_INITDB_ROOT_USERNAME }}
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+
+          MARIADB_VERSION: ${{ env.MARIADB_VERSION }}
+          MARIADB_DATABASE: ${{ secrets.MARIADB_DATABASE }}
+          MARIADB_USER: ${{ secrets.MARIADB_USER }}
+          MARIADB_ROOT_PASSWORD: ${{ secrets.MARIADB_ROOT_PASSWORD }}
+          MARIADB_PASSWORD: ${{ secrets.MARIADB_PASSWORD }}
         run: |
           set -euo pipefail
 
           : "${MONGO_INITDB_ROOT_USERNAME:?MONGO_INITDB_ROOT_USERNAME secret is required}"
           : "${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD secret is required}"
+
+          : "${MARIADB_DATABASE:?MARIADB_DATABASE secret is required}"
+          : "${MARIADB_USER:?MARIADB_USER secret is required}"
+          : "${MARIADB_ROOT_PASSWORD:?MARIADB_ROOT_PASSWORD secret is required}"
+          : "${MARIADB_PASSWORD:?MARIADB_PASSWORD secret is required}"
 
           PORT="${VPS_PORT:-22}"
 
@@ -179,10 +196,17 @@ jobs:
           cat > .env.production <<ENVFILE
           IMAGE_REPOSITORY=${IMAGE_REPOSITORY}
           IMAGE_TAG=${IMAGE_TAG}
+
           MONGO_VERSION=${MONGO_VERSION}
           MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
           MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
           MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+
+          MARIADB_VERSION=${MARIADB_VERSION}
+          MARIADB_DATABASE=${MARIADB_DATABASE}
+          MARIADB_USER=${MARIADB_USER}
+          MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+          MARIADB_PASSWORD=${MARIADB_PASSWORD}
           ENVFILE
 
           echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin

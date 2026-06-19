@@ -120,18 +120,20 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       KAFKA_LOG_RETENTION_HOURS: 168
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     volumes:
       - kafka-data:/tmp/kraft-combined-logs
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"
         ]
-      interval: 10s
+      interval: 15s
       timeout: 10s
-      retries: 10
-      start_period: 45s
+      retries: 20
+      start_period: 90s
 
   node:
     image: ${IMAGE_REPOSITORY}-node:${IMAGE_TAG}

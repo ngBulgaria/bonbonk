@@ -21,6 +21,7 @@ env:
   MONGO_INITDB_DATABASE: bonbonk
   MARIADB_VERSION: "11.8"
   REDIS_VERSION: "8.6"
+  KAFKA_VERSION: "4.3.0"
 
 jobs:
   build:
@@ -138,6 +139,8 @@ jobs:
 
           REDIS_VERSION: ${{ env.REDIS_VERSION }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+
+          KAFKA_VERSION: ${{ env.KAFKA_VERSION }}
         run: |
           set -euo pipefail
 

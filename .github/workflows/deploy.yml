@@ -17,6 +17,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  MONGO_VERSION: "8.2"
+  MONGO_INITDB_DATABASE: bonbonk
 
 jobs:
   build:
@@ -40,7 +42,13 @@ jobs:
 
       - name: Validate compose file
         run: |
-          IMAGE_REPOSITORY=local/bonbonk IMAGE_TAG=ci docker compose config --quiet
+          IMAGE_REPOSITORY=local/bonbonk \
+          IMAGE_TAG=ci \
+          MONGO_VERSION="${MONGO_VERSION}" \
+          MONGO_INITDB_DATABASE="${MONGO_INITDB_DATABASE}" \
+          MONGO_INITDB_ROOT_USERNAME=ci_user \
+          MONGO_INITDB_ROOT_PASSWORD=ci_password \
+          docker compose config --quiet
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -58,6 +66,8 @@ jobs:
           context: .
           file: docker/nginx/Dockerfile
           push: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
           tags: |
             ${{ steps.vars.outputs.image_repository }}-web:${{ github.sha }}
             ${{ steps.vars.outputs.image_repository }}-web:main
@@ -68,6 +78,8 @@ jobs:
           context: .
           file: docker/php/Dockerfile
           push: true
+          cache-from: type=gha,scope=php
+          cache-to: type=gha,mode=max,scope=php
           tags: |
             ${{ steps.vars.outputs.image_repository }}-php:${{ github.sha }}
             ${{ steps.vars.outputs.image_repository }}-php:main
@@ -78,6 +90,8 @@ jobs:
           context: .
           file: docker/node/Dockerfile
           push: true
+          cache-from: type=gha,scope=node
+          cache-to: type=gha,mode=max,scope=node
           tags: |
             ${{ steps.vars.outputs.image_repository }}-node:${{ github.sha }}
             ${{ steps.vars.outputs.image_repository }}-node:main
@@ -95,12 +109,22 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
           IMAGE_REPOSITORY: ${{ needs.build.outputs.image_repository }}
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+
+          MONGO_VERSION: ${{ env.MONGO_VERSION }}
+          MONGO_INITDB_DATABASE: ${{ env.MONGO_INITDB_DATABASE }}
+          MONGO_INITDB_ROOT_USERNAME: ${{ secrets.MONGO_INITDB_ROOT_USERNAME }}
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
         run: |
           set -euo pipefail
+
+          : "${MONGO_INITDB_ROOT_USERNAME:?MONGO_INITDB_ROOT_USERNAME secret is required}"
+          : "${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD secret is required}"
 
           PORT="${VPS_PORT:-22}"
 
@@ -155,6 +179,10 @@ jobs:
           cat > .env.production <<ENVFILE
           IMAGE_REPOSITORY=${IMAGE_REPOSITORY}
           IMAGE_TAG=${IMAGE_TAG}
+          MONGO_VERSION=${MONGO_VERSION}
+          MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+          MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+          MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
           ENVFILE
 
           echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin

@@ -20,6 +20,7 @@ env:
   MONGO_VERSION: "8.2"
   MONGO_INITDB_DATABASE: bonbonk
   MARIADB_VERSION: "11.8"
+  REDIS_VERSION: "8.6"
 
 jobs:
   build:
@@ -54,6 +55,8 @@ jobs:
           MARIADB_USER=ci_user \
           MARIADB_ROOT_PASSWORD=ci_root_password \
           MARIADB_PASSWORD=ci_password \
+          REDIS_VERSION="${REDIS_VERSION}" \
+          REDIS_PASSWORD=ci_password \
           docker compose config --quiet
 
       - name: Set up Docker Buildx
@@ -132,6 +135,9 @@ jobs:
           MARIADB_USER: ${{ secrets.MARIADB_USER }}
           MARIADB_ROOT_PASSWORD: ${{ secrets.MARIADB_ROOT_PASSWORD }}
           MARIADB_PASSWORD: ${{ secrets.MARIADB_PASSWORD }}
+
+          REDIS_VERSION: ${{ env.REDIS_VERSION }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           set -euo pipefail
 
@@ -142,6 +148,8 @@ jobs:
           : "${MARIADB_USER:?MARIADB_USER secret is required}"
           : "${MARIADB_ROOT_PASSWORD:?MARIADB_ROOT_PASSWORD secret is required}"
           : "${MARIADB_PASSWORD:?MARIADB_PASSWORD secret is required}"
+
+          : "${REDIS_PASSWORD:?REDIS_PASSWORD secret is required}"
 
           PORT="${VPS_PORT:-22}"
 
@@ -207,6 +215,9 @@ jobs:
           MARIADB_USER=${MARIADB_USER}
           MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
           MARIADB_PASSWORD=${MARIADB_PASSWORD}
+
+          REDIS_VERSION=${REDIS_VERSION}
+          REDIS_PASSWORD=${REDIS_PASSWORD}
           ENVFILE
 
           echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
